@@ -11,16 +11,25 @@ import UsersManagement from '@/components/dashboard/UsersManagement';
 import OrdersManagement from '@/components/dashboard/OrdersManagement';
 import HomePageSettings from '@/components/dashboard/HomePageSettings';
 import { Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 
 export default function Dashboard() {
   const { user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login');
-    } else if (!isLoading && !isAdmin) {
-      navigate('/');
+    if (!isLoading) {
+      if (!user) {
+        toast.error("Authentication required", {
+          description: "Please login to access the dashboard"
+        });
+        navigate('/login');
+      } else if (!isAdmin) {
+        toast.error("Access denied", {
+          description: "You don't have permission to access the admin dashboard"
+        });
+        navigate('/');
+      }
     }
   }, [user, isAdmin, isLoading, navigate]);
 

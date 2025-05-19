@@ -3,14 +3,40 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { Input } from '@/components/ui/input';
+import { Loader2, Search, X } from 'lucide-react';
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   
   useEffect(() => {
     fetchUsers();
   }, []);
+  
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const lowerCaseQuery = searchQuery.toLowerCase();
+      setFilteredUsers(users.filter(user => 
+        user.first_name?.toLowerCase().includes(lowerCaseQuery) || 
+        user.last_name?.toLowerCase().includes(lowerCaseQuery) ||
+        user.id.toLowerCase().includes(lowerCaseQuery)
+      ));
+    }
+  }, [searchQuery, users]);
   
   async function fetchUsers() {
     try {
@@ -24,6 +50,7 @@ export default function UsersManagement() {
       if (error) throw error;
       
       setUsers(data || []);
+      setFilteredUsers(data || []);
     } catch (error: any) {
       toast.error('Error loading users', {
         description: error.message
@@ -47,7 +74,9 @@ export default function UsersManagement() {
         user.id === userId ? { ...user, is_admin: !isCurrentlyAdmin } : user
       ));
       
-      toast.success(`User admin status updated`);
+      toast.success(`User admin status updated`, {
+        description: isCurrentlyAdmin ? 'Admin privileges removed' : 'Admin privileges granted'
+      });
     } catch (error: any) {
       toast.error('Error updating user', {
         description: error.message
@@ -57,46 +86,88 @@ export default function UsersManagement() {
   }
   
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Users Management</h1>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Users Management</h1>
+        
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            className="pl-8 pr-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-2.5"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      </div>
       
       {loading ? (
-        <p>Loading users...</p>
-      ) : users.length === 0 ? (
-        <div className="text-center py-10">
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : filteredUsers.length === 0 ? (
+        <div className="text-center py-10 border rounded-md">
           <p className="text-muted-foreground">No users found</p>
         </div>
       ) : (
-        <div className="border rounded-md">
-          <div className="border-b px-4 py-3 flex items-center font-medium">
-            <div className="flex-1">User ID</div>
-            <div className="flex-1">Name</div>
-            <div className="w-32 text-center">Admin Status</div>
-            <div className="w-32 text-center">Actions</div>
-          </div>
-          
-          {users.map((user) => (
-            <div key={user.id} className="border-b px-4 py-3 flex items-center">
-              <div className="flex-1 truncate">{user.id}</div>
-              <div className="flex-1">{user.first_name} {user.last_name}</div>
-              <div className="w-32 text-center">
-                {user.is_admin ? (
-                  <span className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Admin</span>
-                ) : (
-                  <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">User</span>
-                )}
-              </div>
-              <div className="w-32 flex justify-center">
-                <Button 
-                  size="sm" 
-                  variant={user.is_admin ? "destructive" : "outline"}
-                  onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                >
-                  {user.is_admin ? "Remove Admin" : "Make Admin"}
-                </Button>
-              </div>
-            </div>
-          ))}
+        <div className="border rounded-md overflow-hidden">
+          <Table>
+            <TableCaption>List of all registered users</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead className="text-center">Admin Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-mono text-xs truncate max-w-[120px]">
+                    {user.id}
+                  </TableCell>
+                  <TableCell>
+                    {user.first_name || user.last_name 
+                      ? `${user.first_name || ''} ${user.last_name || ''}`.trim() 
+                      : 'No name provided'}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {user.is_admin ? (
+                      <span className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+                        Admin
+                      </span>
+                    ) : (
+                      <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                        User
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      size="sm" 
+                      variant={user.is_admin ? "destructive" : "outline"}
+                      onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                    >
+                      {user.is_admin ? "Remove Admin" : "Make Admin"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

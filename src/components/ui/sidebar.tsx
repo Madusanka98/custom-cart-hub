@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { cva } from "class-variance-authority"
@@ -244,16 +243,19 @@ export const SidebarMenuButton = React.forwardRef<
 
   return (
     <Comp {...childProps}>
-      <div
-        className={cn(
-          "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent/50",
-          active && "bg-accent/50 font-medium text-accent-foreground",
-          collapsed ? "justify-center p-2" : "",
-          className
-        )}
-        ref={asChild ? undefined : ref}
-      >
-        {React.Children.map(children, (child) => {
+      {/* Fix: Change div to button when not using asChild to fix ref type issues */}
+      {React.createElement(
+        asChild ? "div" : "button",
+        {
+          className: cn(
+            "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent/50",
+            active && "bg-accent/50 font-medium text-accent-foreground",
+            collapsed ? "justify-center p-2" : "",
+            className
+          ),
+          ref: ref,
+        },
+        React.Children.map(children, (child) => {
           if (React.isValidElement(child)) {
             return child
           }
@@ -261,8 +263,8 @@ export const SidebarMenuButton = React.forwardRef<
             return child
           }
           return null
-        })}
-      </div>
+        })
+      )}
     </Comp>
   )
 })
