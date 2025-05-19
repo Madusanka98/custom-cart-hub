@@ -9,6 +9,8 @@ import DashboardHome from '@/components/dashboard/DashboardHome';
 import ProductsManagement from '@/components/dashboard/ProductsManagement';
 import UsersManagement from '@/components/dashboard/UsersManagement';
 import OrdersManagement from '@/components/dashboard/OrdersManagement';
+import HomePageSettings from '@/components/dashboard/HomePageSettings';
+import { Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, isAdmin, isLoading } = useAuth();
@@ -27,7 +29,10 @@ export default function Dashboard() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <p>Loading dashboard...</p>
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p>Loading dashboard...</p>
+          </div>
         </main>
         <Footer />
       </div>
@@ -47,6 +52,7 @@ export default function Dashboard() {
           <Route path="products" element={<ProductsManagement />} />
           <Route path="users" element={<UsersManagement />} />
           <Route path="orders" element={<OrdersManagement />} />
+          <Route path="homepage" element={<HomePageSettings />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </DashboardLayout>

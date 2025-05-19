@@ -7,7 +7,8 @@ import {
   ShoppingBag, 
   Users, 
   PackageOpen, 
-  Settings 
+  Settings,
+  Home 
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: ShoppingBag, label: 'Products', href: '/dashboard/products' },
     { icon: Users, label: 'Users', href: '/dashboard/users' },
     { icon: PackageOpen, label: 'Orders', href: '/dashboard/orders' },
+    { icon: Home, label: 'Home Page', href: '/dashboard/homepage' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
   ];
   

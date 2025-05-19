@@ -268,7 +268,7 @@ export function Header() {
                   <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
                     <Button className="w-full" variant="outline">Login</Button>
                   </Link>
-                  <Link to="/login" className="flex-1" onClick={() => { setActiveTab('register'); setMobileMenuOpen(false); }}>
+                  <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
                     <Button className="w-full">Register</Button>
                   </Link>
                 </>
@@ -280,4 +280,3 @@ export function Header() {
     </header>
   );
 }
-
