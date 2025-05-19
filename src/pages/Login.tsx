@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from '@/components/ui/sonner';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -17,44 +17,21 @@ export default function Login() {
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { user, signIn, signUp, isLoading } = useAuth();
+  
+  // Redirect if already logged in
+  if (user) {
+    return <Navigate to="/" />;
+  }
   
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    setLoading(true);
-    // Here we would normally make a Supabase auth request
-    setTimeout(() => {
-      setLoading(false);
-      // Display success notification
-      toast('Login Successful', {
-        description: 'Welcome back to MarketMaster!',
-      });
-      
-      // For demo, we'll just show a notification explaining about Supabase
-      toast('Supabase Integration Required', {
-        description: 'To implement full authentication, please connect to Supabase.',
-      });
-    }, 1000);
+    signIn(loginEmail, loginPassword);
   };
   
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    setLoading(true);
-    // Here we would normally make a Supabase auth request
-    setTimeout(() => {
-      setLoading(false);
-      // Display success notification
-      toast('Registration Successful', {
-        description: 'Your account has been created successfully!',
-      });
-      
-      // For demo, we'll just show a notification explaining about Supabase
-      toast('Supabase Integration Required', {
-        description: 'To implement full authentication, please connect to Supabase.',
-      });
-    }, 1000);
+    signUp(registerEmail, registerPassword, registerName);
   };
   
   return (
@@ -117,9 +94,9 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={loading}
+                    disabled={isLoading}
                   >
-                    {loading ? 'Logging in...' : 'Sign In'}
+                    {isLoading ? 'Logging in...' : 'Sign In'}
                   </Button>
                   
                   <div className="text-center text-sm text-muted-foreground">
@@ -183,9 +160,9 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={loading}
+                    disabled={isLoading}
                   >
-                    {loading ? 'Creating Account...' : 'Create Account'}
+                    {isLoading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                   
                   <div className="text-center text-sm text-muted-foreground">
@@ -205,7 +182,7 @@ export default function Login() {
           
           <div className="mt-6">
             <p className="text-center text-muted-foreground text-xs">
-              This is a demo application. For full functionality including authentication, please connect to Supabase.
+              For development purposes, you may want to disable email verification in the Supabase Console.
             </p>
           </div>
         </div>

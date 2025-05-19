@@ -14,11 +14,19 @@ import {
 import { categories } from '@/data/mockData';
 import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 export function Header() {
   const { cartCount } = useCart();
+  const { user, signOut, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -98,6 +106,14 @@ export function Header() {
                 </Link>
               </NavigationMenuItem>
               
+              {isAdmin && (
+                <NavigationMenuItem>
+                  <Link to="/dashboard" className="nav-link">
+                    <NavigationMenuLink>Dashboard</NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              
               <NavigationMenuItem>
                 <Link to="/sellers" className="nav-link">
                   <NavigationMenuLink>Sell on MarketMaster</NavigationMenuLink>
@@ -117,15 +133,35 @@ export function Header() {
             </Button>
           </Link>
           
-          <Link to="/login">
-            <Button variant="outline" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
-          
-          <Link to="/login">
-            <Button size="sm">Sign In</Button>
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Link to="/profile" className="w-full">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link to="/orders" className="w-full">Orders</Link>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem>
+                    <Link to="/dashboard" className="w-full">Dashboard</Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => signOut()}>
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login">
+              <Button size="sm">Sign In</Button>
+            </Link>
+          )}
         </div>
         
         {/* Mobile Menu Button */}
@@ -186,6 +222,15 @@ export function Header() {
             >
               Deals
             </Link>
+            {isAdmin && (
+              <Link 
+                to="/dashboard" 
+                className="block py-2 px-3 hover:bg-muted rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+            )}
             <Link 
               to="/sellers" 
               className="block py-2 px-3 hover:bg-muted rounded-md"
@@ -209,12 +254,25 @@ export function Header() {
               </div>
             </div>
             <div className="border-t pt-3 flex gap-3">
-              <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full" variant="outline">Login</Button>
-              </Link>
-              <Link to="/register" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full">Register</Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/profile" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full" variant="outline">Profile</Button>
+                  </Link>
+                  <Button className="flex-1" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full" variant="outline">Login</Button>
+                  </Link>
+                  <Link to="/login" className="flex-1" onClick={() => { setActiveTab('register'); setMobileMenuOpen(false); }}>
+                    <Button className="w-full">Register</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>
@@ -222,3 +280,4 @@ export function Header() {
     </header>
   );
 }
+
