@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 export default function Index() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('featured');
   const [categories, setCategories] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -58,13 +59,17 @@ export default function Index() {
         // Transform products data to match the Product type
         const transformedProducts = productsData.map(product => ({
           ...product,
-          seller: { name: 'Store Seller', id: product.seller_id },
+          seller: { 
+            name: 'Store Seller', 
+            id: product.seller_id,
+            rating: 4.5 // Adding the missing rating property
+          },
         })) as Product[];
         
         // Set different product groups for tabs
         setFeaturedProducts(transformedProducts.slice(0, 8));
-        setNewArrivals(transformedProducts.slice(4, 12));
-        setBestSellers(transformedProducts.slice(2, 10));
+        setNewArrivals(transformedProducts.slice(0, 8));
+        setBestSellers(transformedProducts.slice(0, 8));
         setDeals(transformedProducts.filter(p => p.discount && p.discount > 0).slice(0, 8));
       }
       
@@ -75,6 +80,10 @@ export default function Index() {
   }, []);
   
   const popularCategories = categories.slice(0, 6);
+  
+  const handleCategoryClick = (categoryId: string) => {
+    navigate(`/products/category/${categoryId}`);
+  };
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -130,16 +139,16 @@ export default function Index() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {popularCategories.map((category) => (
-                  <Link 
+                  <div
                     key={category.id} 
-                    to={`/category/${category.id}`}
-                    className="bg-card hover:bg-accent transition-colors rounded-lg p-4 text-center"
+                    onClick={() => handleCategoryClick(category.id)}
+                    className="bg-card hover:bg-accent transition-colors rounded-lg p-4 text-center cursor-pointer"
                   >
                     <div className="h-16 w-16 mx-auto flex items-center justify-center bg-primary/10 rounded-full mb-3">
-                      <span className="text-primary text-xl">{category.icon}</span>
+                      <span className="text-primary text-xl">{category.icon || '📦'}</span>
                     </div>
                     <h3 className="font-medium">{category.name}</h3>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

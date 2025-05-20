@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -20,6 +21,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 export default function Products() {
+  const navigate = useNavigate();
+  const { categoryId } = useParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 200]);
@@ -46,7 +49,7 @@ export default function Products() {
       }
       
       // Fetch products
-      const { data: productsData, error: productsError } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           id,
@@ -60,6 +63,17 @@ export default function Products() {
           seller_id,
           stock
         `);
+        
+      // Filter by category if provided in URL
+      if (categoryId) {
+        const category = categoriesData?.find(cat => cat.id === categoryId);
+        if (category) {
+          query = query.eq('category', category.name);
+          setSelectedCategories([category.name]);
+        }
+      }
+      
+      const { data: productsData, error: productsError } = await query;
       
       if (productsError) {
         console.error('Error fetching products:', productsError);
@@ -67,7 +81,11 @@ export default function Products() {
         // Transform products data to match the Product type
         const transformedProducts = productsData.map(product => ({
           ...product,
-          seller: { name: 'Store Seller', id: product.seller_id },
+          seller: { 
+            name: 'Store Seller', 
+            id: product.seller_id,
+            rating: 4.5 // Adding the missing rating property
+          },
         })) as Product[];
         
         setProducts(transformedProducts);
@@ -77,7 +95,7 @@ export default function Products() {
     }
     
     fetchData();
-  }, []);
+  }, [categoryId]);
   
   // Filter products based on selected filters
   const filteredProducts = products.filter(product => {
@@ -117,7 +135,7 @@ export default function Products() {
       case 'rating':
         return (b.rating || 0) - (a.rating || 0);
       case 'newest':
-        return parseInt(b.id) - parseInt(a.id);
+        return parseInt(b.id.toString()) - parseInt(a.id.toString());
       default: // 'featured'
         return 0; // No sorting
     }
