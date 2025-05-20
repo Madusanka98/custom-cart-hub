@@ -10,6 +10,7 @@ import ProductsManagement from '@/components/dashboard/ProductsManagement';
 import UsersManagement from '@/components/dashboard/UsersManagement';
 import OrdersManagement from '@/components/dashboard/OrdersManagement';
 import HomePageSettings from '@/components/dashboard/HomePageSettings';
+import CategoriesManagement from '@/components/dashboard/CategoriesManagement';
 import { Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
@@ -59,6 +60,7 @@ export default function Dashboard() {
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="products" element={<ProductsManagement />} />
+          <Route path="categories" element={<CategoriesManagement />} />
           <Route path="users" element={<UsersManagement />} />
           <Route path="orders" element={<OrdersManagement />} />
           <Route path="homepage" element={<HomePageSettings />} />

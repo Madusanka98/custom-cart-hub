@@ -8,7 +8,8 @@ import {
   Users, 
   PackageOpen, 
   Home,
-  Settings
+  Settings,
+  List
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -21,6 +22,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', description: 'Overview of your store' },
     { icon: ShoppingBag, label: 'Products', href: '/dashboard/products', description: 'Manage your products' },
+    { icon: List, label: 'Categories', href: '/dashboard/categories', description: 'Manage product categories' },
     { icon: Users, label: 'Users', href: '/dashboard/users', description: 'Manage user accounts' },
     { icon: PackageOpen, label: 'Orders', href: '/dashboard/orders', description: 'View and manage orders' },
     { icon: Home, label: 'Home Page', href: '/dashboard/homepage', description: 'Edit homepage content' },
