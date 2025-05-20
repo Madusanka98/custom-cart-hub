@@ -1,16 +1,79 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { featuredProducts, categories } from '@/data/mockData';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types';
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState('featured');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [deals, setDeals] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+      
+      if (categoriesError) {
+        console.error('Error fetching categories:', categoriesError);
+      } else {
+        setCategories(categoriesData || []);
+      }
+      
+      // Fetch products for different tabs
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select(`
+          id,
+          title,
+          description,
+          price,
+          discount,
+          images,
+          rating,
+          category,
+          seller_id,
+          stock
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (productsError) {
+        console.error('Error fetching products:', productsError);
+      } else {
+        // Transform products data to match the Product type
+        const transformedProducts = productsData.map(product => ({
+          ...product,
+          seller: { name: 'Store Seller', id: product.seller_id },
+        })) as Product[];
+        
+        // Set different product groups for tabs
+        setFeaturedProducts(transformedProducts.slice(0, 8));
+        setNewArrivals(transformedProducts.slice(4, 12));
+        setBestSellers(transformedProducts.slice(2, 10));
+        setDeals(transformedProducts.filter(p => p.discount && p.discount > 0).slice(0, 8));
+      }
+      
+      setLoading(false);
+    }
+    
+    fetchData();
+  }, []);
+  
   const popularCategories = categories.slice(0, 6);
   
   return (
@@ -56,20 +119,30 @@ export default function Index() {
               </Link>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {popularCategories.map((category) => (
-                <Link 
-                  key={category.id} 
-                  to={`/category/${category.id}`}
-                  className="bg-card hover:bg-accent transition-colors rounded-lg p-4 text-center"
-                >
-                  <div className="h-16 w-16 mx-auto flex items-center justify-center bg-primary/10 rounded-full mb-3">
-                    <span className="text-primary text-xl">{category.icon}</span>
-                  </div>
-                  <h3 className="font-medium">{category.name}</h3>
-                </Link>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : popularCategories.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No categories found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {popularCategories.map((category) => (
+                  <Link 
+                    key={category.id} 
+                    to={`/category/${category.id}`}
+                    className="bg-card hover:bg-accent transition-colors rounded-lg p-4 text-center"
+                  >
+                    <div className="h-16 w-16 mx-auto flex items-center justify-center bg-primary/10 rounded-full mb-3">
+                      <span className="text-primary text-xl">{category.icon}</span>
+                    </div>
+                    <h3 className="font-medium">{category.name}</h3>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </section>
         
@@ -85,53 +158,81 @@ export default function Index() {
               </Link>
             </div>
             
-            <Tabs 
-              defaultValue="featured" 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="mb-8">
-                <TabsTrigger value="featured">Featured</TabsTrigger>
-                <TabsTrigger value="new-arrivals">New Arrivals</TabsTrigger>
-                <TabsTrigger value="best-sellers">Best Sellers</TabsTrigger>
-                <TabsTrigger value="deals">Top Deals</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="featured">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {featuredProducts.slice(0, 8).map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="new-arrivals">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {featuredProducts.slice(4, 12).map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="best-sellers">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {featuredProducts.slice(2, 10).map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="deals">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {featuredProducts
-                    .filter(product => product.discount)
-                    .map((product) => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                </div>
-              </TabsContent>
-            </Tabs>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Tabs 
+                defaultValue="featured" 
+                value={activeTab} 
+                onValueChange={setActiveTab}
+                className="w-full"
+              >
+                <TabsList className="mb-8">
+                  <TabsTrigger value="featured">Featured</TabsTrigger>
+                  <TabsTrigger value="new-arrivals">New Arrivals</TabsTrigger>
+                  <TabsTrigger value="best-sellers">Best Sellers</TabsTrigger>
+                  <TabsTrigger value="deals">Top Deals</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="featured">
+                  {featuredProducts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No featured products found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {featuredProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="new-arrivals">
+                  {newArrivals.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No new arrivals found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {newArrivals.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="best-sellers">
+                  {bestSellers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No best sellers found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {bestSellers.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="deals">
+                  {deals.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No deals found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {deals.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
             
             <div className="mt-8 text-center">
               <Link to="/products">
