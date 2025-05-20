@@ -24,7 +24,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link to={`/products/${product.id}`} className="overflow-hidden">
         <div className="h-48 overflow-hidden relative">
           <img
-            src={product.images[0]} 
+            src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder.svg'} 
             alt={product.title}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
@@ -36,7 +36,7 @@ export function ProductCard({ product }: ProductCardProps) {
       
       <CardContent className="pt-4 flex-grow">
         <div className="flex justify-between items-start mb-1">
-          <Rating value={product.rating} />
+          <Rating value={product.rating || 0} />
           <span className="text-xs text-muted-foreground">{product.category}</span>
         </div>
         
@@ -56,7 +56,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="text-muted-foreground text-sm line-clamp-2 mb-1">{product.description}</p>
         
         <div className="text-xs text-muted-foreground">
-          Seller: {product.seller.name}
+          Seller: {product.seller?.name || 'Store Seller'}
         </div>
       </CardContent>
       

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -9,11 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
+import { CategoriesList } from '@/components/CategoriesList';
 
 export default function Index() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('featured');
-  const [categories, setCategories] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [bestSellers, setBestSellers] = useState<Product[]>([]);
@@ -21,48 +20,40 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    async function fetchData() {
+    async function fetchProducts() {
       setLoading(true);
       
-      // Fetch categories
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-      
-      if (categoriesError) {
-        console.error('Error fetching categories:', categoriesError);
-      } else {
-        setCategories(categoriesData || []);
-      }
-      
-      // Fetch products for different tabs
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select(`
-          id,
-          title,
-          description,
-          price,
-          discount,
-          images,
-          rating,
-          category,
-          seller_id,
-          stock
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (productsError) {
-        console.error('Error fetching products:', productsError);
-      } else {
+      try {
+        // Fetch all products
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select(`
+            id,
+            title,
+            description,
+            price,
+            discount,
+            images,
+            rating,
+            category,
+            seller_id,
+            stock,
+            created_at
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (productsError) {
+          console.error('Error fetching products:', productsError);
+          return;
+        }
+        
         // Transform products data to match the Product type
         const transformedProducts = productsData.map(product => ({
           ...product,
           seller: { 
             name: 'Store Seller', 
             id: product.seller_id,
-            rating: 4.5 // Adding the missing rating property
+            rating: 4.5
           },
         })) as Product[];
         
@@ -71,19 +62,15 @@ export default function Index() {
         setNewArrivals(transformedProducts.slice(0, 8));
         setBestSellers(transformedProducts.slice(0, 8));
         setDeals(transformedProducts.filter(p => p.discount && p.discount > 0).slice(0, 8));
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     }
     
-    fetchData();
+    fetchProducts();
   }, []);
-  
-  const popularCategories = categories.slice(0, 6);
-  
-  const handleCategoryClick = (categoryId: string) => {
-    navigate(`/products/category/${categoryId}`);
-  };
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -116,44 +103,8 @@ export default function Index() {
           </div>
         </section>
         
-        {/* Categories Section */}
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold">Popular Categories</h2>
-              <Link to="/categories">
-                <Button variant="outline" className="hidden sm:flex items-center">
-                  All Categories <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : popularCategories.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No categories found</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {popularCategories.map((category) => (
-                  <div
-                    key={category.id} 
-                    onClick={() => handleCategoryClick(category.id)}
-                    className="bg-card hover:bg-accent transition-colors rounded-lg p-4 text-center cursor-pointer"
-                  >
-                    <div className="h-16 w-16 mx-auto flex items-center justify-center bg-primary/10 rounded-full mb-3">
-                      <span className="text-primary text-xl">{category.icon || '📦'}</span>
-                    </div>
-                    <h3 className="font-medium">{category.name}</h3>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+        {/* Categories Section - Using the new CategoriesList component */}
+        <CategoriesList limit={6} />
         
         {/* Featured Products Section */}
         <section className="py-12 bg-muted/50">

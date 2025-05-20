@@ -1,7 +1,6 @@
 
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { allProducts } from '@/data/mockData';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -13,69 +12,159 @@ import {
   AccordionItem, 
   AccordionTrigger 
 } from '@/components/ui/accordion';
-import { ShoppingCart, Heart, Truck, ArrowLeft, ArrowRight, Star } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, ArrowLeft, ArrowRight, Star, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductCard } from '@/components/ProductCard';
+import { Product } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Find the product based on the ID from URL params
-  const product = allProducts.find(p => p.id === id);
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!id) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch the product
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (productError) {
+          throw new Error(productError.message);
+        }
+        
+        if (!productData) {
+          throw new Error('Product not found');
+        }
+        
+        // Add seller information to match the Product type
+        const transformedProduct = {
+          ...productData,
+          seller: { 
+            name: 'Store Seller', 
+            id: productData.seller_id,
+            rating: 4.5
+          },
+        } as Product;
+        
+        setProduct(transformedProduct);
+        
+        // Fetch related products (same category)
+        if (productData.category) {
+          const { data: relatedData, error: relatedError } = await supabase
+            .from('products')
+            .select('*')
+            .eq('category', productData.category)
+            .neq('id', id)
+            .limit(4);
+            
+          if (relatedError) {
+            console.error('Error fetching related products:', relatedError);
+          } else {
+            // Transform products to match the Product type
+            const transformedProducts = (relatedData || []).map(p => ({
+              ...p,
+              seller: { 
+                name: 'Store Seller', 
+                id: p.seller_id,
+                rating: 4.5
+              },
+            })) as Product[];
+            
+            setRelatedProducts(transformedProducts);
+          }
+        }
+        
+      } catch (err: any) {
+        setError(err.message);
+        console.error('Error fetching product:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchProduct();
+  }, [id]);
   
-  // If product not found, show a message
-  if (!product) {
+  // Calculate discounted price if applicable
+  const discountedPrice = product?.discount 
+    ? product.price * (1 - product.discount / 100)
+    : product?.price || 0;
+  
+  const handleAddToCart = () => {
+    if (product) {
+      addToCart(product, quantity);
+    }
+  };
+  
+  const handleQuantityChange = (amount: number) => {
+    const newQuantity = quantity + amount;
+    if (newQuantity >= 1 && newQuantity <= (product?.stock || 1)) {
+      setQuantity(newQuantity);
+    }
+  };
+  
+  const handlePrevImage = () => {
+    if (product?.images && product.images.length > 0) {
+      setCurrentImageIndex(prev => 
+        prev === 0 ? product.images.length - 1 : prev - 1
+      );
+    }
+  };
+  
+  const handleNextImage = () => {
+    if (product?.images && product.images.length > 0) {
+      setCurrentImageIndex(prev => 
+        prev === product.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+  
+  // Loading state
+  if (loading) {
     return (
       <div>
         <Header />
         <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
-          <p>Sorry, we couldn't find the product you're looking for.</p>
-          <Button asChild className="mt-4">
-            <a href="/products">Back to Products</a>
-          </Button>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <p>Loading product details...</p>
         </div>
         <Footer />
       </div>
     );
   }
   
-  // Calculate discounted price if applicable
-  const discountedPrice = product.discount 
-    ? product.price * (1 - product.discount / 100)
-    : product.price;
-  
-  // Get related products (same category, excluding current product)
-  const relatedProducts = allProducts
-    .filter(p => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
-  
-  const handleAddToCart = () => {
-    addToCart(product, quantity);
-  };
-  
-  const handleQuantityChange = (amount: number) => {
-    const newQuantity = quantity + amount;
-    if (newQuantity >= 1 && newQuantity <= product.stock) {
-      setQuantity(newQuantity);
-    }
-  };
-  
-  const handlePrevImage = () => {
-    setCurrentImageIndex(prev => 
-      prev === 0 ? product.images.length - 1 : prev - 1
+  // Error state
+  if (error || !product) {
+    return (
+      <div>
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+          <p>{error || "Sorry, we couldn't find the product you're looking for."}</p>
+          <Button asChild className="mt-4">
+            <Link to="/products">Back to Products</Link>
+          </Button>
+        </div>
+        <Footer />
+      </div>
     );
-  };
-  
-  const handleNextImage = () => {
-    setCurrentImageIndex(prev => 
-      prev === product.images.length - 1 ? 0 : prev + 1
-    );
-  };
+  }
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -87,15 +176,15 @@ export default function ProductDetail() {
           <nav className="mb-6 text-sm text-muted-foreground">
             <ol className="flex flex-wrap items-center">
               <li>
-                <a href="/" className="hover:text-primary">Home</a>
+                <Link to="/" className="hover:text-primary">Home</Link>
               </li>
               <li className="mx-2">/</li>
               <li>
-                <a href="/products" className="hover:text-primary">Products</a>
+                <Link to="/products" className="hover:text-primary">Products</Link>
               </li>
               <li className="mx-2">/</li>
               <li>
-                <a href={`/category/${product.category}`} className="hover:text-primary">{product.category}</a>
+                <Link to={`/products/category/${product.category}`} className="hover:text-primary">{product.category}</Link>
               </li>
               <li className="mx-2">/</li>
               <li className="text-foreground font-medium">{product.title}</li>
@@ -108,7 +197,7 @@ export default function ProductDetail() {
             <div className="space-y-4">
               <div className="relative bg-muted rounded-lg overflow-hidden h-96">
                 <img 
-                  src={product.images[currentImageIndex]} 
+                  src={product.images && product.images.length > 0 ? product.images[currentImageIndex] : '/placeholder.svg'} 
                   alt={product.title}
                   className="w-full h-full object-contain"
                 />
@@ -125,6 +214,7 @@ export default function ProductDetail() {
                     size="icon" 
                     className="opacity-70 hover:opacity-100" 
                     onClick={handlePrevImage}
+                    disabled={!product.images || product.images.length <= 1}
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
@@ -133,6 +223,7 @@ export default function ProductDetail() {
                     size="icon" 
                     className="opacity-70 hover:opacity-100" 
                     onClick={handleNextImage}
+                    disabled={!product.images || product.images.length <= 1}
                   >
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -140,23 +231,25 @@ export default function ProductDetail() {
               </div>
               
               {/* Thumbnail Images */}
-              <div className="flex gap-2">
-                {product.images.map((image, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentImageIndex(idx)}
-                    className={`w-20 h-20 border rounded-md overflow-hidden ${
-                      idx === currentImageIndex ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img 
-                      src={image} 
-                      alt={`${product.title} thumbnail ${idx + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+              {product.images && product.images.length > 1 && (
+                <div className="flex gap-2">
+                  {product.images.map((image, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`w-20 h-20 border rounded-md overflow-hidden ${
+                        idx === currentImageIndex ? 'ring-2 ring-primary' : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img 
+                        src={image} 
+                        alt={`${product.title} thumbnail ${idx + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             
             {/* Product Info */}
@@ -165,7 +258,7 @@ export default function ProductDetail() {
               
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center">
-                  <Rating value={product.rating} />
+                  <Rating value={product.rating || 0} />
                   <span className="ml-2 text-sm text-muted-foreground">
                     {product.rating} Rating
                   </span>
@@ -338,8 +431,8 @@ export default function ProductDetail() {
                   
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-12">
                     <div className="text-center">
-                      <div className="text-4xl font-bold">{product.rating}</div>
-                      <Rating value={product.rating} size={24} className="my-2" />
+                      <div className="text-4xl font-bold">{product.rating || 0}</div>
+                      <Rating value={product.rating || 0} size={24} className="my-2" />
                       <div className="text-sm text-muted-foreground">Based on 24 reviews</div>
                     </div>
                     
@@ -352,9 +445,9 @@ export default function ProductDetail() {
                               className="bg-yellow-500 h-full"
                               style={{ 
                                 width: `${
-                                  star === Math.round(product.rating) 
+                                  star === Math.round(product.rating || 0) 
                                     ? '70%'
-                                    : star > Math.round(product.rating)
+                                    : star > Math.round(product.rating || 0)
                                       ? '10%'
                                       : '30%'
                                 }` 
@@ -362,9 +455,9 @@ export default function ProductDetail() {
                             ></div>
                           </div>
                           <div className="w-8 text-sm">{
-                            star === Math.round(product.rating) 
+                            star === Math.round(product.rating || 0) 
                               ? '70%'
-                              : star > Math.round(product.rating)
+                              : star > Math.round(product.rating || 0)
                                 ? '10%'
                                 : '30%'
                           }</div>
@@ -450,14 +543,16 @@ export default function ProductDetail() {
           </Tabs>
           
           {/* Related Products */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Related Products</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </section>
+          {relatedProducts.length > 0 && (
+            <section>
+              <h2 className="text-2xl font-bold mb-6">Related Products</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {relatedProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </main>
       

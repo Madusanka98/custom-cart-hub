@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -21,7 +21,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 
 export default function Products() {
-  const navigate = useNavigate();
   const { categoryId } = useParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -36,62 +35,66 @@ export default function Products() {
     async function fetchData() {
       setLoading(true);
       
-      // Fetch categories
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-      
-      if (categoriesError) {
-        console.error('Error fetching categories:', categoriesError);
-      } else {
-        setCategories(categoriesData || []);
-      }
-      
-      // Fetch products
-      let query = supabase
-        .from('products')
-        .select(`
-          id,
-          title,
-          description,
-          price,
-          discount,
-          images,
-          rating,
-          category,
-          seller_id,
-          stock
-        `);
+      try {
+        // Fetch categories
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
         
-      // Filter by category if provided in URL
-      if (categoryId) {
-        const category = categoriesData?.find(cat => cat.id === categoryId);
-        if (category) {
-          query = query.eq('category', category.name);
-          setSelectedCategories([category.name]);
+        if (categoriesError) {
+          console.error('Error fetching categories:', categoriesError);
+        } else {
+          setCategories(categoriesData || []);
         }
-      }
-      
-      const { data: productsData, error: productsError } = await query;
-      
-      if (productsError) {
-        console.error('Error fetching products:', productsError);
-      } else {
-        // Transform products data to match the Product type
-        const transformedProducts = productsData.map(product => ({
-          ...product,
-          seller: { 
-            name: 'Store Seller', 
-            id: product.seller_id,
-            rating: 4.5 // Adding the missing rating property
-          },
-        })) as Product[];
         
-        setProducts(transformedProducts);
+        // Fetch products
+        let query = supabase
+          .from('products')
+          .select(`
+            id,
+            title,
+            description,
+            price,
+            discount,
+            images,
+            rating,
+            category,
+            seller_id,
+            stock
+          `);
+          
+        // Filter by category if provided in URL
+        if (categoryId) {
+          const category = categoriesData?.find(cat => cat.id === categoryId);
+          if (category) {
+            query = query.eq('category', category.name);
+            setSelectedCategories([category.name]);
+          }
+        }
+        
+        const { data: productsData, error: productsError } = await query;
+        
+        if (productsError) {
+          console.error('Error fetching products:', productsError);
+        } else {
+          // Transform products data to match the Product type
+          const transformedProducts = productsData.map(product => ({
+            ...product,
+            seller: { 
+              name: 'Store Seller', 
+              id: product.seller_id,
+              rating: 4.5 // Adding the missing rating property
+            },
+          })) as Product[];
+          
+          setProducts(transformedProducts);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     }
     
     fetchData();
@@ -133,7 +136,7 @@ export default function Products() {
         const priceHighB = b.discount ? b.price * (1 - b.discount / 100) : b.price;
         return priceHighB - priceHighA;
       case 'rating':
-        return (b.rating || 0) - (a.rating || 0);
+        return ((b.rating || 0) - (a.rating || 0));
       case 'newest':
         return parseInt(b.id.toString()) - parseInt(a.id.toString());
       default: // 'featured'
@@ -169,7 +172,11 @@ export default function Products() {
       
       <main className="flex-grow">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-6">All Products</h1>
+          <h1 className="text-3xl font-bold mb-6">
+            {categoryId && categories.find(cat => cat.id === categoryId)
+              ? `${categories.find(cat => cat.id === categoryId)?.name} Products`
+              : 'All Products'}
+          </h1>
           
           {/* Loading state */}
           {loading ? (

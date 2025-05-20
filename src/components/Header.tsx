@@ -1,282 +1,354 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
-import { categories } from '@/data/mockData';
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
-import { useCart } from '@/context/CartContext';
-import { useAuth } from '@/context/AuthContext';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { CategoriesDropdown } from './CategoriesDropdown';
+import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
+import { useMobile } from '@/hooks/use-mobile';
 
 export function Header() {
-  const { cartCount } = useCart();
-  const { user, signOut, isAdmin } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isMobile } = useMobile();
+  const navigate = useNavigate();
+  const { user, isAdmin, logout } = useAuth();
+  const { cart } = useCart();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+  
+  // Close mobile menu when navigating or resizing to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (!isMobile) setIsMenuOpen(false);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // This would typically navigate to search results
-    console.log('Searching for:', searchQuery);
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+      setIsSearchActive(false);
+    }
   };
   
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
+  const handleLogout = () => {
+    setShowLogoutConfirm(false);
+    logout();
+  };
+  
+  const toggleMenu = () => {
+    setIsMenuOpen(prev => !prev);
+  };
+  
+  const toggleSearch = () => {
+    setIsSearchActive(prev => !prev);
   };
   
   return (
-    <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex items-center">
-          <span className="text-xl font-bold text-primary">MarketMaster</span>
-        </Link>
-        
-        {/* Search Bar - Hidden on Mobile */}
-        <form 
-          onSubmit={handleSearch} 
-          className="hidden md:flex relative max-w-sm flex-1 mx-4"
-        >
-          <Input
-            type="text"
-            placeholder="Search products..."
-            className="pr-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Button 
-            type="submit" 
-            size="icon" 
-            variant="ghost" 
-            className="absolute right-0 top-0 h-full"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        </form>
-        
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-4">
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>Categories</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    {categories.map((category) => (
-                      <li key={category.id} className="row-span-1">
-                        <NavigationMenuLink asChild>
-                          <Link
-                            to={`/category/${category.id}`}
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          >
-                            <div className="text-sm font-medium leading-none">{category.name}</div>
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/products" className="nav-link">
-                  <NavigationMenuLink>Products</NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/deals" className="nav-link">
-                  <NavigationMenuLink>Deals</NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              
-              {isAdmin && (
-                <NavigationMenuItem>
-                  <Link to="/dashboard" className="nav-link">
-                    <NavigationMenuLink>Dashboard</NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-              )}
-              
-              <NavigationMenuItem>
-                <Link to="/sellers" className="nav-link">
-                  <NavigationMenuLink>Sell on MarketMaster</NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-          
-          <Link to="/cart">
-            <Button variant="outline" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 px-1.5 py-0.5 min-w-[18px] h-[18px] text-xs flex items-center justify-center">
-                  {cartCount}
-                </Badge>
-              )}
-            </Button>
+    <header className="bg-background border-b sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 md:py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="text-xl font-bold text-primary flex items-center">
+            <svg 
+              viewBox="0 0 24 24" 
+              className="w-6 h-6 mr-2 fill-primary" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 2L4 7l8 5 8-5-8-5zM4 15l8 5 8-5M4 11l8 5 8-5" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                fill="none" 
+              />
+            </svg>
+            MarketMaster
           </Link>
           
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <User className="h-5 w-5" />
+          {/* Mobile - Menu Toggle Button */}
+          {isMobile && (
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={toggleSearch}
+                className="focus:outline-none"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              
+              <Link to="/cart" className="relative">
+                <Button variant="ghost" size="icon" className="focus:outline-none">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartItemCount}
+                    </span>
+                  )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Link to="/profile" className="w-full">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link to="/orders" className="w-full">Orders</Link>
-                </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem>
-                    <Link to="/dashboard" className="w-full">Dashboard</Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={() => signOut()}>
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link to="/login">
-              <Button size="sm">Sign In</Button>
-            </Link>
+              </Link>
+              
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={toggleMenu}
+                className="focus:outline-none"
+              >
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
+          )}
+          
+          {/* Desktop - Navigation Links */}
+          {!isMobile && (
+            <nav className="flex items-center space-x-6">
+              <Link to="/" className="text-foreground hover:text-primary transition-colors">
+                Home
+              </Link>
+              <CategoriesDropdown />
+              <Link to="/products" className="text-foreground hover:text-primary transition-colors">
+                Products
+              </Link>
+              <Link to="/sellers" className="text-foreground hover:text-primary transition-colors">
+                Sellers
+              </Link>
+              <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
+                Contact
+              </Link>
+            </nav>
+          )}
+          
+          {/* Desktop - Right Side Controls */}
+          {!isMobile && (
+            <div className="flex items-center space-x-4">
+              {/* Search */}
+              <form onSubmit={handleSearch} className="relative">
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="w-56 pl-8 pr-2 h-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
+              </form>
+              
+              {/* Cart */}
+              <Link to="/cart" className="relative">
+                <Button variant="ghost" size="icon" className="focus:outline-none">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              
+              {/* User */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="focus:outline-none">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {user ? (
+                    <>
+                      <DropdownMenuItem disabled>
+                        <span className="text-sm">Hello, {user.email?.split('@')[0]}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => navigate('/account')}>
+                        My Account
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => navigate('/orders')}>
+                        My Orders
+                      </DropdownMenuItem>
+                      {isAdmin && (
+                        <DropdownMenuItem onSelect={() => navigate('/dashboard')}>
+                          Admin Dashboard
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onSelect={() => setShowLogoutConfirm(true)}>
+                        Logout
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem onSelect={() => navigate('/login')}>
+                        Login
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => navigate('/register')}>
+                        Register
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
         
-        {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center gap-3">
-          <Link to="/cart">
-            <Button variant="outline" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 px-1.5 py-0.5 min-w-[18px] h-[18px] text-xs flex items-center justify-center">
-                  {cartCount}
-                </Badge>
-              )}
-            </Button>
-          </Link>
-          
-          <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-      </div>
-      
-      {/* Mobile Menu */}
-      <div className={cn(
-        "md:hidden bg-background border-b",
-        mobileMenuOpen ? "block animate-fade-in" : "hidden"
-      )}>
-        <div className="container py-4 px-4 space-y-4">
-          <form onSubmit={handleSearch} className="relative">
-            <Input
-              type="text"
-              placeholder="Search products..."
-              className="pr-8 w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Button 
-              type="submit" 
-              size="icon" 
-              variant="ghost" 
-              className="absolute right-0 top-0 h-full"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+        {/* Mobile - Search Bar (conditionally rendered) */}
+        {isMobile && isSearchActive && (
+          <form onSubmit={handleSearch} className="mt-3">
+            <div className="relative">
+              <Input
+                type="search"
+                placeholder="Search products..."
+                className="w-full pl-8 pr-2"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="absolute right-1 top-1 h-7 w-7 p-0"
+                onClick={toggleSearch}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </form>
-          
-          <nav className="space-y-3">
+        )}
+        
+        {/* Mobile - Navigation Menu (conditionally rendered) */}
+        {isMobile && isMenuOpen && (
+          <nav className="mt-4 py-3 space-y-3">
+            <Link 
+              to="/" 
+              className="block p-2 hover:bg-muted rounded-md"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Home
+            </Link>
             <Link 
               to="/products" 
-              className="block py-2 px-3 hover:bg-muted rounded-md"
-              onClick={() => setMobileMenuOpen(false)}
+              className="block p-2 hover:bg-muted rounded-md"
+              onClick={() => setIsMenuOpen(false)}
             >
               Products
             </Link>
             <Link 
-              to="/deals" 
-              className="block py-2 px-3 hover:bg-muted rounded-md"
-              onClick={() => setMobileMenuOpen(false)}
+              to="/categories" 
+              className="block p-2 hover:bg-muted rounded-md"
+              onClick={() => setIsMenuOpen(false)}
             >
-              Deals
+              Categories
             </Link>
-            {isAdmin && (
-              <Link 
-                to="/dashboard" 
-                className="block py-2 px-3 hover:bg-muted rounded-md"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-            )}
             <Link 
               to="/sellers" 
-              className="block py-2 px-3 hover:bg-muted rounded-md"
-              onClick={() => setMobileMenuOpen(false)}
+              className="block p-2 hover:bg-muted rounded-md"
+              onClick={() => setIsMenuOpen(false)}
             >
-              Sell on MarketMaster
+              Sellers
             </Link>
-            <div className="py-2 px-3">
-              <p className="font-medium mb-2">Categories</p>
-              <div className="grid grid-cols-2 gap-2">
-                {categories.map((category) => (
+            <Link 
+              to="/contact" 
+              className="block p-2 hover:bg-muted rounded-md"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            {user ? (
+              <>
+                <div className="border-t border-border my-2 pt-2"></div>
+                <Link 
+                  to="/account" 
+                  className="block p-2 hover:bg-muted rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  My Account
+                </Link>
+                <Link 
+                  to="/orders" 
+                  className="block p-2 hover:bg-muted rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  My Orders
+                </Link>
+                {isAdmin && (
                   <Link 
-                    key={category.id} 
-                    to={`/category/${category.id}`}
-                    className="py-1 text-sm text-muted-foreground hover:text-primary"
-                    onClick={() => setMobileMenuOpen(false)}
+                    to="/dashboard" 
+                    className="block p-2 hover:bg-muted rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
                   >
-                    {category.name}
+                    Admin Dashboard
                   </Link>
-                ))}
-              </div>
-            </div>
-            <div className="border-t pt-3 flex gap-3">
-              {user ? (
-                <>
-                  <Link to="/profile" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full" variant="outline">Profile</Button>
-                  </Link>
-                  <Button className="flex-1" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full" variant="outline">Login</Button>
-                  </Link>
-                  <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full">Register</Button>
-                  </Link>
-                </>
-              )}
-            </div>
+                )}
+                <button 
+                  className="block w-full text-left p-2 hover:bg-muted rounded-md text-destructive"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setShowLogoutConfirm(true);
+                  }}
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="border-t border-border my-2 pt-2"></div>
+                <Link 
+                  to="/login" 
+                  className="block p-2 hover:bg-muted rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="block p-2 hover:bg-muted rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </nav>
-        </div>
+        )}
       </div>
+      
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }
