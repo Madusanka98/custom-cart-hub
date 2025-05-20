@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -7,9 +6,9 @@ import { useCart } from '@/context/CartContext';
 import { Trash, ShoppingCart, ArrowRight } from 'lucide-react';
 
 export default function Cart() {
-  const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { cartItems: cart, removeFromCart, updateQuantity, cartTotal } = useCart();
   
-  const handleQuantityChange = (productId: string | number, newQuantity: number) => {
+  const handleQuantityChange = (productId: string, newQuantity: number) => {
     if (newQuantity > 0) {
       updateQuantity(productId, newQuantity);
     }

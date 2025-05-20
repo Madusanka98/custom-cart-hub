@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -28,8 +27,8 @@ import { useMobile } from '@/hooks/use-mobile';
 export function Header() {
   const { isMobile } = useMobile();
   const navigate = useNavigate();
-  const { user, isAdmin, logout } = useAuth();
-  const { cart } = useCart();
+  const { user, isAdmin, signOut } = useAuth();
+  const { cartItems: cart } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,7 +56,7 @@ export function Header() {
   
   const handleLogout = () => {
     setShowLogoutConfirm(false);
-    logout();
+    signOut();
   };
   
   const toggleMenu = () => {
