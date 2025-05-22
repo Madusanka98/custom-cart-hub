@@ -37,17 +37,19 @@ const passwordFormSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
+type ProfileData = {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+}
+
 export default function Account() {
   const { user, session } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [profile, setProfile] = useState<{ 
-    first_name: string | null; 
-    last_name: string | null; 
-    avatar_url: string | null;
-    phone: string | null;
-  }>({
+  const [profile, setProfile] = useState<ProfileData>({
     first_name: '',
     last_name: '',
     avatar_url: null,
@@ -90,18 +92,21 @@ export default function Account() {
         
         if (error) throw error;
         
-        setProfile(data || { 
+        // Use type assertion to handle potentially null values
+        const profileData: ProfileData = data || { 
           first_name: '', 
           last_name: '', 
           avatar_url: null,
-          phone: null
-        });
+          phone: null 
+        };
+        
+        setProfile(profileData);
         
         // Update form values
         profileForm.reset({
-          firstName: data?.first_name || '',
-          lastName: data?.last_name || '',
-          phone: data?.phone || '',
+          firstName: profileData.first_name || '',
+          lastName: profileData.last_name || '',
+          phone: profileData.phone || '',
         });
         
       } catch (error: any) {
@@ -136,7 +141,7 @@ export default function Account() {
           first_name: values.firstName,
           last_name: values.lastName,
           phone: values.phone,
-          updated_at: new Date(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
       
