@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -6,7 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { Trash, ShoppingCart, ArrowRight } from 'lucide-react';
 
 export default function Cart() {
-  const { cartItems: cart, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, cartTotal } = useCart();
   
   const handleQuantityChange = (productId: string, newQuantity: number) => {
     if (newQuantity > 0) {
@@ -22,7 +23,7 @@ export default function Cart() {
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold mb-6">Your Shopping Cart</h1>
           
-          {cart.length === 0 ? (
+          {cartItems.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto w-16 h-16 mb-4 text-muted-foreground">
                 <ShoppingCart className="w-full h-full" />
@@ -48,7 +49,7 @@ export default function Cart() {
                     <div className="col-span-1 text-right">Total</div>
                   </div>
                   
-                  {cart.map((item) => {
+                  {cartItems.map((item) => {
                     const { product, quantity } = item;
                     const price = product.discount 
                       ? product.price * (1 - product.discount / 100)

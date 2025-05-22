@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
@@ -13,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 export default function Checkout() {
-  const { cartItems: cart, cartTotal, clearCart } = useCart();
+  const { cartItems, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,7 +40,7 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
       toast({
         title: "Cart is empty",
         description: "Please add some products to your cart before checkout.",
@@ -89,7 +90,7 @@ export default function Checkout() {
       }
 
       // Insert order items
-      const orderItems = cart.map(item => ({
+      const orderItems = cartItems.map(item => ({
         order_id: orderData.id,
         product_id: item.product.id,
         quantity: item.quantity,
@@ -142,7 +143,7 @@ export default function Checkout() {
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
               
               <div className="space-y-3 mb-4">
-                {cart.map((item) => {
+                {cartItems.map((item) => {
                   const price = item.product.discount 
                     ? item.product.price * (1 - item.product.discount / 100) 
                     : item.product.price;
@@ -287,7 +288,7 @@ export default function Checkout() {
                 type="submit" 
                 size="lg" 
                 className="w-full"
-                disabled={isSubmitting || cart.length === 0}
+                disabled={isSubmitting || cartItems.length === 0}
               >
                 {isSubmitting ? (
                   <>
