@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
@@ -11,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/Icons";
 import { toast } from "@/components/ui/sonner";
+import { LogOut, User } from "lucide-react";
 
 export function Header() {
   const { user, signOut, isAdmin } = useAuth();
@@ -31,7 +33,6 @@ export function Header() {
       navigate('/login');
     } catch (error: any) {
       toast({
-        title: "Error signing out",
         description: error.message,
         variant: "destructive",
       });
@@ -152,7 +153,7 @@ export function Header() {
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                        <Dashboard className="mr-2 h-4 w-4" />
+                        <User className="mr-2 h-4 w-4" />
                         <span>Dashboard</span>
                       </DropdownMenuItem>
                     )}
@@ -177,9 +178,3 @@ export function Header() {
     </header>
   );
 }
-
-import {
-  User,
-  LogOut,
-  Dashboard
-} from "lucide-react";

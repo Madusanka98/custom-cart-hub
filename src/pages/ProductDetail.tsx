@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
@@ -15,7 +14,7 @@ import {
 import { ShoppingCart, Heart, Truck, ArrowLeft, ArrowRight, Star, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProductCard } from '@/components/ProductCard';
+import ProductCard from "@/components/ProductCard";
 import { Product } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
